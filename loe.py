@@ -167,22 +167,6 @@ def show_search():
     search_entry = Entry(search_frame, width=30, font=("Arial", 11))
     search_entry.pack(side=LEFT, padx=5)
     
-    def search_data():
-        """Arama yap"""
-        filter_text = search_entry.get().strip()
-        load_data(filter_text)
-    
-    search_button = Button(search_frame, text="Ara", width=10, 
-                          font=("Arial", 10, "bold"), command=search_data)
-    search_button.pack(side=LEFT, padx=5)
-    
-    # Enter tuşuyla da arama yap
-    search_entry.bind("<Return>", lambda e: search_data())
-    
-    clear_button = Button(search_frame, text="Temizle", width=10, 
-                         font=("Arial", 10), command=lambda: [search_entry.delete(0, END), load_data()])
-    clear_button.pack(side=LEFT, padx=5)
-    
     # Sonuç sayısı göstergesi
     result_label = Label(window, text="", font=("Arial", 10, "italic"), fg="blue")
     result_label.pack(pady=5)
@@ -259,9 +243,74 @@ def show_search():
                 else:
                     result_label.config(text=f"Toplam {count} kayıt gösteriliyor", fg="blue")
     
+    def search_data():
+        """Arama yap"""
+        filter_text = search_entry.get().strip()
+        load_data(filter_text)
+    
+    def delete_person():
+        """Seçili kişiyi sil"""
+        selection = listbox.curselection()
+        
+        if not selection:
+            messagebox.showwarning("Uyarı", "Lütfen silmek istediğiniz kişiyi listeden seçin!")
+            return
+        
+        selected_index = selection[0]
+        selected_text = listbox.get(selected_index)
+        
+        # Başlık veya ayırıcı satırı seçilmişse uyar
+        if "=" in selected_text or "İsim" in selected_text:
+            messagebox.showwarning("Uyarı", "Lütfen geçerli bir kişi kaydı seçin!")
+            return
+        
+        # Silinecek kişinin adını al
+        person_name = selected_text.split("|")[0].strip()
+        
+        # Onay al
+        confirm = messagebox.askyesno("Kişi Sil", 
+                                     f"'{person_name}' isimli kişiyi silmek istediğinizden emin misiniz?")
+        
+        if confirm:
+            # Dosyayı oku
+            with open("data.txt", "r", encoding="utf-8") as file:
+                lines = file.readlines()
+            
+            # Silinecek satırı bul ve sil
+            new_lines = []
+            deleted = False
+            for line in lines:
+                # Seçilen kişinin bilgilerini içeren satırı atla
+                if person_name in line and not deleted:
+                    deleted = True
+                    continue
+                new_lines.append(line)
+            
+            # Dosyayı yeniden yaz
+            with open("data.txt", "w", encoding="utf-8") as file:
+                file.writelines(new_lines)
+            
+            messagebox.showinfo("Başarılı", f"'{person_name}' silindi!")
+            
+            # Listeyi yenile
+            filter_text = search_entry.get().strip()
+            load_data(filter_text)
+    
+    # Butonlar
+    search_button = Button(search_frame, text="Ara", width=10, 
+                          font=("Arial", 10, "bold"), command=search_data)
+    search_button.pack(side=LEFT, padx=5)
+    
+    # Enter tuşuyla da arama yap
+    search_entry.bind("<Return>", lambda e: search_data())
+    
+    delete_button = Button(search_frame, text="Kişi Sil", width=10, 
+                          font=("Arial", 10), bg="#ff6b6b", fg="white", command=delete_person)
+    delete_button.pack(side=LEFT, padx=5)
+    
     # İlk yüklemede tüm verileri göster
     load_data()
-    search_entry.focus()  # Arama kutusuna odaklan
+    search_entry.focus()
     
     # Alt butonlar
     button_frame = Frame(window)
@@ -272,9 +321,9 @@ def show_search():
     back_button.pack(side=LEFT, padx=10)
     
     refresh_button = Button(button_frame, text="Yenile", width=15, 
-                           font=("Arial", 11), command=lambda: load_data())
+                           font=("Arial", 11), command=lambda: load_data(""))
     refresh_button.pack(side=LEFT, padx=10)
-    
+
 # Ana pencere
 window = Tk()
 window.title("ListOfEron")
